@@ -1,0 +1,47 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #090c15; color: #f3f5ff; font-family: system-ui, sans-serif; touch-action: none; user-select: none; }
+button { border: 1px solid #7180a8; background: #1b2542; color: white; border-radius: 12px; padding: 12px 22px; cursor: pointer; }
+button:active { transform: scale(0.98); }
+.screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.hidden { display: none !important; }
+.panel, .card { background: rgba(15, 20, 38, 0.94); border: 1px solid #53618a; border-radius: 20px; padding: 24px; max-width: 850px; width: min(92vw, 850px); max-height: 90vh; overflow: auto; text-align: center; }
+.titlebox { text-align: center; z-index: 2; }
+.titlebox h1 { font-size: clamp(26px, 5vw, 64px); margin: 0 0 8px; }
+.titlebox p { opacity: 0.8; margin: 0 0 28px; }
+.titlebox button { display: block; margin: 12px auto; min-width: 220px; font-size: 18px; }
+.subbtn { background: #11182c; color: #c8d0eb; }
+.song { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; margin: 9px 0; background: #151e35; }
+.song .mark { font-size: 24px; }
+.song small { display: block; opacity: 0.65; margin-top: 4px; }
+
+#rotate { display: none; position: fixed; inset: 0; z-index: 99; background: #090c15; align-items: center; justify-content: center; text-align: center; font-size: 22px; padding: 30px; }
+#hud { position: absolute; top: 0; left: 0; right: 0; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(#080b16cc, transparent); font-size: clamp(11px, 1.8vw, 17px); z-index: 4; }
+#hud > div:first-child { display: flex; flex-direction: column; gap: 4px; }
+#clock { opacity: 0.6; font-size: 0.8em; }
+.stats { margin-left: auto; margin-right: 18px; }
+#pauseBtn { padding: 7px 14px; }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; background: #11182a; }
+
+#feedback { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); font-size: clamp(18px, 3vw, 32px); font-weight: 700; z-index: 10; pointer-events: none; text-shadow: 0 2px 10px #000; opacity: 0; }
+#promptLayer { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.prompt { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.3); font-size: clamp(35px, 8vw, 100px); font-weight: 800; text-shadow: 0 0 18px #9bc3ff; opacity: 0.95; }
+
+/* 第一人称的双手 */
+#hands { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+#leftHand, #rightHand { position: absolute; bottom: 3%; font-size: clamp(28px, 5vw, 70px); filter: drop-shadow(0 5px 5px #0008); }
+#leftHand { left: 18%; transform: scaleX(-1); }
+#rightHand { right: 18%; }
+#baton { position: absolute; font-size: 1.1em; right: -0.25em; top: -0.4em; transform: rotate(-25deg); color: #e9d8a0; }
+
+.overlay { position: absolute; inset: 0; background: #02040aaa; display: flex; align-items: center; justify-content: center; z-index: 20; }
+.card button { display: block; margin: 12px 0; width: 100%; }
+
+.reaction { font-size: clamp(28px, 6vw, 70px); margin: 25px; }
+.resultgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
+.resultgrid div { padding: 10px; background: #121a2e; border-radius: 10px; }
+
+/* 竖屏提醒 */
+@media (orientation: portrait) {
+  #rotate { display: flex; }
+  #app { display: none; }
+}
