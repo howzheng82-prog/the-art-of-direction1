@@ -203,20 +203,25 @@ addEventListener("pointerup", e => {
   let dx = e.clientX - pointerStart.x, dy = e.clientY - pointerStart.y;
   if (Math.abs(dx) + Math.abs(dy) > 30) {
     let dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "←" : "→") : (dy < 0 ? "↑" : "↓");
-    
-    // 🌟 直接找屏幕上的第一个箭头！
+    let elapsed = (performance.now() - state.start) / 1000;
     let prompts = document.querySelectorAll(".prompt");
-    if (prompts.length > 0) {
-      let firstPrompt = prompts[0];
-      let evIndex = +firstPrompt.dataset.id;
-      let activeEv = state.events[evIndex];
-      if (activeEv && !activeEv.done) {
-        activeEv.done = true;
-        addScore(dir === activeEv.dir ? "Perfect" : "Good");
-        let member = band[activeEv.bandId];
-        if (member) member.noteTimer = 1.0;
-        firstPrompt.remove(); // 🌟 直接删掉屏幕上的DOM元素，绝对能消失！
+    let activeEv = null, activePrompt = null;
+    for (let p of prompts) {
+      let ev = state.events[+p.dataset.id];
+      if (ev && !ev.done) {
+        let d = ev.t - elapsed + 1.2;
+        // 🌟 只在判定线附近（0.5秒内）才允许得分！
+        if (d < 0.5 && d > -0.2) {
+          activeEv = ev; activePrompt = p; break;
+        }
       }
+    }
+    if (activeEv) {
+      activeEv.done = true;
+      addScore(dir === activeEv.dir ? "Perfect" : "Good");
+      let member = band[activeEv.bandId];
+      if (member) member.noteTimer = 1.0;
+      if (activePrompt) activePrompt.remove();
     }
   }
   pointerStart = null;
@@ -247,25 +252,23 @@ function loop(now) {
 
     // 更新箭头位置（从上往下落）
     document.querySelectorAll(".prompt").forEach(p => {
-      let e = state.events[+p.dataset.id];
-      let d = e.t - elapsed + 1.2; // 1.2秒内从 0 变成 1.2
-      let progress = Math.max(0, Math.min(1, 1 - d / 1.2)); 
-p.style.top = (2 + progress * 70) + "%";
-// 改成从 0.1 倍大小开始，变到 0.9 倍大小（从小变大，整体更小更精致）
-p.style.transform = `translate(-50%, -50%) scale(${0.05 + progress * 0.5})`;
-
-// 核心修改：越上越暗（0.2），慢慢拉近变亮（1.0）
-p.style.opacity = 0.2 + (progress * 0.8);
-// 配合滤色，让它从暗灰变成亮白
-p.style.filter = `brightness(${0.3 + progress * 0.7})`;
-
-  if (d < 0 && !e.done) { 
-    e.done = true; 
-    p.style.opacity = 0; // 先变透明
-    p.remove(); // 然后彻底从屏幕删除
-    feedback("MISS", true); 
-    state.misses++; 
-    state.combo = 0; 
+  let e = state.events[+p.dataset.id];
+  if (!e) { p.remove(); return; }
+  let d = e.t - elapsed + 1.2;
+  let progress = Math.max(0, Math.min(1, 1 - d / 1.2));
+  p.style.top = (2 + progress * 70) + "%";
+  p.style.transform = `translate(-50%, -50%) scale(${0.05 + progress * 0.5})`;
+  p.style.opacity = 0.2 + (progress * 0.8);
+  p.style.filter = `brightness(${0.3 + progress * 0.7})`;
+  // 🌟 时间到了，不管有没有判定过，一律删除！
+  if (d < 0) {
+    if (!e.done) {
+      e.done = true;
+      feedback("MISS", true);
+      state.misses++;
+      state.combo = 0;
+    }
+    p.remove();
   }
 });
 
