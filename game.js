@@ -1,6 +1,6 @@
 const $ = s => document.querySelector(s);
 
-// 曲目列表（暂时不加载真实音频，确保游戏能跑）
+// 曲目列表（暂不加载真实音频，避免白屏）
 const songs = [
   { mark: "🟢", name: "Canon in D", composer: "Johann Pachelbel", bpm: 84 },
   { mark: "🟢", name: "Ode to Joy", composer: "Ludwig van Beethoven", bpm: 92 },
@@ -29,86 +29,91 @@ function resize() {
 }
 addEventListener("resize", resize);
 
-// 绘制第一人称管乐团（这里包含了坐姿和起立两种状态）
-function drawScene(phase = "waiting") {
+/* =========================================================
+   🌟 2.5D 核心渲染代码
+   ========================================================= */
+// 乐团布局（加入 z 表示深度，z 越大越远）
+// 我们按照管乐团合理的座位：长笛靠近小号，打击乐在最后方
+const band = [
+  // 第一排（木管，近处，z=0.5）
+  { inst: "🎶", x: 0.2, z: 0.5 }, { inst: "🎵", x: 0.4, z: 0.5 }, { inst: "🎷", x: 0.6, z: 0.5 }, { inst: "🎶", x: 0.8, z: 0.5 },
+  // 第二排（铜管，中间，z=1.5）
+  { inst: "🎺", x: 0.25, z: 1.5 }, { inst: "🎺", x: 0.45, z: 1.5 }, { inst: "📯", x: 0.65, z: 1.5 }, { inst: "🎺", x: 0.85, z: 1.5 },
+  // 第三排（打击乐与低音铜管，最后方，z=2.5）
+  { inst: "🥁", x: 0.35, z: 2.5 }, { inst: "🎺", x: 0.55, z: 2.5 }, { inst: "🥁", x: 0.75, z: 2.5 }
+];
+
+function drawScene() {
   let w = innerWidth, h = innerHeight;
   ctx.clearRect(0, 0, w, h);
 
-  // 背景渐变
+  // 背景：模拟舞台灯光与深度
   let g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, "#283650"); g.addColorStop(1, "#070a12");
+  g.addColorStop(0, "#1a2238"); // 顶部远处暗
+  g.addColorStop(0.5, "#283650"); // 中间舞台
+  g.addColorStop(1, "#070a12"); // 底部近处深色
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
 
-  // 管乐团布局
-  let band = [
-    ["🎶", 0.20, 0.55], ["🎺", 0.35, 0.55], ["🎵", 0.50, 0.55], ["🎺", 0.65, 0.55],
-    ["📯", 0.25, 0.70], ["🎺", 0.45, 0.70], ["🎺", 0.65, 0.70], ["🥁", 0.50, 0.85]
-  ];
+  // 绘制指挥台底部的黑影，增强第一人称视角
+  ctx.fillStyle = "#05070e";
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(w * 0.2, h * 0.85);
+  ctx.lineTo(w * 0.8, h * 0.85);
+  ctx.lineTo(w, h);
+  ctx.fill();
 
-  band.forEach(([ins, x, y]) => {
-    let px = w * x, py = h * y;
+  // 2.5D 参数定义
+  const horizonY = h * 0.45; // 地平线位置（越远的乐手越靠近这里）
+  const floorY = h * 0.95;   // 舞台最前沿（离玩家最近的位置）
+  const centerX = w / 2;
+
+  // 核心：按深度 z 排序，远的先画，近的后画（解决遮挡问题）
+  band.sort((a, b) => b.z - a.z);
+
+  band.forEach((member) => {
+    // 1. 计算透视缩放比例 (Scale)
+    // z 越小（越近），scale 越接近 1；z 越大（越远），scale 越小
+    let scale = 1 / (1 + member.z * 0.4); 
     
-    // 如果是等待/鞠躬阶段，乐手是坐着的，身体画得矮一点
-    let bodyHeight = (phase === "waiting") ? 30 : 50;
-    let instrumentY = (phase === "waiting") ? py + 15 : py + 5;
+    // 2. 计算屏幕上的 Y 坐标（透视压缩）
+    // 通过从地平线到地板进行插值，越远越靠近地平线
+    let screenY = horizonY + (floorY - horizonY) * scale;
+    
+    // 3. 计算屏幕上的 X 坐标（向中心点收敛）
+    let screenX = centerX + (member.x * w - centerX) * scale;
 
-    // 身体
+    // 4. 根据缩放比例绘制乐手
+    let bodyW = 40 * scale;
+    let bodyH = (state.phase === "perform" ? 50 : 30) * scale; // 演奏时身体挺拔，等待时坐着
+    let headR = 14 * scale;
+
+    // 画身体
     ctx.fillStyle = "#1a2238";
-    ctx.beginPath(); ctx.roundRect(px - 20, py - 10, 40, bodyHeight, 10); ctx.fill();
-    
-    // 头部
-    ctx.fillStyle = "#d5a58b";
-    ctx.beginPath(); ctx.arc(px, py - 20, 14, 0, Math.PI * 2); ctx.fill();
-    
-    // 乐器（起立/演奏时才发光，或者举起）
-    ctx.font = (phase === "waiting") ? "18px sans-serif" : "26px sans-serif";
-    ctx.textAlign = "center";
-    if (phase === "perform") {
-      ctx.fillStyle = "#ffd700"; // 演奏时金色
+    ctx.beginPath();
+    // 用 roundRect 画圆角矩形身体
+    if (ctx.roundRect) {
+      ctx.roundRect(screenX - bodyW/2, screenY - 10 * scale, bodyW, bodyH, 8 * scale);
     } else {
-      ctx.fillStyle = "#ffffff";
+      ctx.rect(screenX - bodyW/2, screenY - 10 * scale, bodyW, bodyH);
     }
-    ctx.fillText(phase === "perform" ? "🎵" : ins, px, instrumentY);
+    ctx.fill();
+
+    // 画头部
+    ctx.fillStyle = "#d5a58b";
+    ctx.beginPath();
+    ctx.arc(screenX, screenY - (20 + 10) * scale, headR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 画乐器（或者音符）
+    ctx.font = `${Math.max(12, 24 * scale)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = state.phase === "perform" ? "#ffd700" : "#ffffff"; // 演奏时金色
+    let instY = screenY + 5 * scale;
+    ctx.fillText(state.phase === "perform" ? "🎵" : member.inst, screenX, instY);
   });
 }
-
-// 开场动画的时间轴（用真实时间模拟）
-function updateIntroAnimation(elapsed) {
-  // 0秒 ~ 1秒：面向观众（我们直接画一个简单的观众席过渡）
-  if (elapsed < 1) {
-    ctx.fillStyle = "#05070e";
-    ctx.fillRect(0, 0, innerWidth, innerHeight);
-    ctx.fillStyle = "#ffd700";
-    ctx.font = "40px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🎻 面向观众...", innerWidth / 2, innerHeight / 2);
-  }
-  // 1秒 ~ 2秒：转向乐团（鞠躬过渡）
-  else if (elapsed < 2) {
-    drawScene("waiting");
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(0, 0, innerWidth, innerHeight);
-    ctx.fillStyle = "#ffd700";
-    ctx.font = "40px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("🎻 鞠躬...", innerWidth / 2, innerHeight / 2);
-  }
-  // 2秒 ~ 3秒：举起指挥棒，乐手起立
-  else if (elapsed < 3) {
-    drawScene("ready");
-    // 给双手一个向上抬起的动画
-    let handY = 3 + (1 - (3 - elapsed)) * 5; 
-    $("#leftHand").style.bottom = handY + "%";
-    $("#rightHand").style.bottom = handY + "%";
-  }
-  // 3秒后：开始游戏
-  else {
-    state.phase = "perform";
-    $("#leftHand").style.bottom = "3%"; // 手回到原位
-    $("#rightHand").style.bottom = "3%";
-    drawScene("perform");
-  }
-}
+/* ========================================================= */
 
 function feedback(t, bad = false) {
   let f = $("#feedback"); f.textContent = t;
@@ -135,15 +140,4 @@ function buildEvents() {
 
 function startSong(i) {
   state.song = i;
-  state.score = state.combo = state.maxCombo = state.hits = state.misses = state.perfect = state.good = state.total = 0;
-  state.eventIndex = 0; 
-  state.phase = "intro"; 
-  state.playing = true; 
-  state.paused = false;
-  
-  show("game"); 
-  $("#songName").textContent = songs[i].name;
-  resize();
-  
-  state.start = performance.now();
-  state.events = b
+  state.score = state.com
