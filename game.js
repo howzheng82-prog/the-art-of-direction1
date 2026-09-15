@@ -245,24 +245,24 @@ function loop(now) {
       let e = state.events[+p.dataset.id];
       let d = e.t - elapsed + 1.2; // 1.2秒内从 0 变成 1.2
       let progress = Math.max(0, Math.min(1, 1 - d / 1.2)); 
-// 下落范围从 2% 到 72%（集中在中间，不顶到最下面）
 p.style.top = (2 + progress * 70) + "%";
-// 尺寸调整一下，让它在中央区域看起来更舒服
-p.style.transform = `translate(-50%, -50%) scale(${0.3 + progress * 0.7})`;
+// 改成从 0.1 倍大小开始，变到 0.9 倍大小（从小变大，整体更小更精致）
+p.style.transform = `translate(-50%, -50%) scale(${0.1 + progress * 0.8})`;
 
 // 核心修改：越上越暗（0.2），慢慢拉近变亮（1.0）
 p.style.opacity = 0.2 + (progress * 0.8);
 // 配合滤色，让它从暗灰变成亮白
 p.style.filter = `brightness(${0.3 + progress * 0.7})`;
 
-            if (d < 0 && !e.done) { 
-        e.done = true; 
-        p.remove(); 
-        feedback("MISS", true); 
-        state.misses++; 
-        state.combo = 0; 
-      }
-    }); // 必须要有这一行！
+  if (d < 0 && !e.done) { 
+    e.done = true; 
+    p.style.opacity = 0; // 先变透明
+    p.remove(); // 然后彻底从屏幕删除
+    feedback("MISS", true); 
+    state.misses++; 
+    state.combo = 0; 
+  }
+});
 
     if (elapsed > 55) { state.playing = false; show("result"); return; }
     drawScene();
