@@ -81,10 +81,39 @@ function resize() {
 addEventListener("resize", resize);
 
 const band = [
-  { inst: "🎶", x: 0.2, z: 0.5 }, { inst: "🎵", x: 0.4, z: 0.5 }, { inst: "🎷", x: 0.6, z: 0.5 }, { inst: "🎶", x: 0.8, z: 0.5 },
-  { inst: "🎺", x: 0.25, z: 1.5 }, { inst: "🎺", x: 0.45, z: 1.5 }, { inst: "📯", x: 0.65, z: 1.5 }, { inst: "🎺", x: 0.85, z: 1.5 },
-  { inst: "🥁", x: 0.35, z: 2.5 }, { inst: "🎺", x: 0.55, z: 2.5 }, { inst: "🥁", x: 0.75, z: 2.5 }
+  { id: 0, inst: "🎶", x: 0.2, z: 0.5, noteTimer: 0 }, { id: 1, inst: "🎵", x: 0.4, z: 0.5, noteTimer: 0 }, { id: 2, inst: "🎷", x: 0.6, z: 0.5, noteTimer: 0 }, { id: 3, inst: "🎶", x: 0.8, z: 0.5, noteTimer: 0 },
+  { id: 4, inst: "🎺", x: 0.25, z: 1.5, noteTimer: 0 }, { id: 5, inst: "🎺", x: 0.45, z: 1.5, noteTimer: 0 }, { id: 6, inst: "📯", x: 0.65, z: 1.5, noteTimer: 0 }, { id: 7, inst: "🎺", x: 0.85, z: 1.5, noteTimer: 0 },
+  { id: 8, inst: "🥁", x: 0.35, z: 2.5, noteTimer: 0 }, { id: 9, inst: "🎺", x: 0.55, z: 2.5, noteTimer: 0 }, { id: 10, inst: "🥁", x: 0.75, z: 2.5, noteTimer: 0 }
 ];
+
+// 🌟 全新的画观众席函数
+function drawAudience() {
+  let w = innerWidth, h = innerHeight;
+  ctx.fillStyle = "#0a0f1a"; // 昏暗的观众席背景
+  ctx.fillRect(0, 0, w, h);
+  
+  // 画一排排的观众轮廓
+  ctx.fillStyle = "#1b2542";
+  for (let row = 0; row < 6; row++) {
+    let y = h * 0.3 + row * (h * 0.12);
+    for (let col = 0; col < 20; col++) {
+      let x = (col * (w / 20)) + (w / 40);
+      ctx.beginPath();
+      ctx.arc(x, y, 10 + row * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(x - 10 - row, y + 10, 20 + row * 2, 20);
+    }
+  }
+  
+  // 指挥台边缘
+  ctx.fillStyle = "#05070e";
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(w * 0.2, h * 0.8);
+  ctx.lineTo(w * 0.8, h * 0.8);
+  ctx.lineTo(w, h);
+  ctx.fill();
+}
 
 function drawScene() {
   let w = innerWidth, h = innerHeight;
@@ -116,6 +145,15 @@ function drawScene() {
     ctx.font = `${Math.max(12, 24 * scale)}px sans-serif`; ctx.textAlign = "center";
     ctx.fillStyle = state.phase === "perform" ? "#ffd700" : "#ffffff";
     ctx.fillText(state.phase === "perform" ? "🎵" : member.inst, screenX, screenY + 5 * scale);
+
+    // 🌟 新增：绘制乐器发声的小音符
+    if (member.noteTimer > 0) {
+      member.noteTimer -= 0.02; // 计时器慢慢减少
+      let noteY = (screenY - 30 * scale) - (1 - member.noteTimer) * 60; // 音符向上飘
+      ctx.fillStyle = `rgba(255, 215, 0, ${member.noteTimer})`; // 金色，慢慢变透明
+      ctx.font = `${Math.max(10, 20 * scale)}px sans-serif`;
+      ctx.fillText("🎵", screenX, noteY);
+    }
   });
 }
 
@@ -128,7 +166,12 @@ function startSong(i) {
   state.events = [];
   let beat = 60 / songs[i].bpm;
   for (let t = 3; t < 50; t += beat) {
-    state.events.push({ t, type: "beat", dir: ["←", "↑", "↓", "→"][state.events.length % 4], done: false });
+    state.events.push({ 
+      t, type: "beat", 
+      dir: ["←", "↑", "↓", "→"][state.events.length % 4], 
+      done: false,
+      bandId: state.events.length % band.length 
+    });
   }
   requestAnimationFrame(loop);
 }
@@ -149,16 +192,41 @@ p.style.top = "2%";
   $("#promptLayer").appendChild(p); e.el = p;
 }
 
+let pointerStart = null;
+addEventListener("pointerdown", e => { 
+  if (!state.playing || state.paused) return; 
+  pointerStart = { x: e.clientX, y: e.clientY }; 
+});
+
+addEventListener("pointerup", e => {
+  if (!pointerStart || !state.playing || state.paused) return;
+  let dx = e.clientX - pointerStart.x, dy = e.clientY - pointerStart.y;
+  if (Math.abs(dx) + Math.abs(dy) > 30) {
+    let dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "←" : "→") : (dy < 0 ? "↑" : "↓");
+    for (let ev of state.events) {
+      if (!ev.done && ev.type === "beat") {
+        ev.done = true;
+        addScore(dir === ev.dir ? "Perfect" : "Good");
+        let member = band[ev.bandId];
+        if (member) member.noteTimer = 1.0;
+        if (ev.el) ev.el.remove(); 
+        break; 
+      }
+    }
+  }
+  pointerStart = null;
+});
+
 function loop(now) {
   if (!state.playing) return;
   let elapsed = (now - state.start) / 1000;
 
   if (state.phase === "intro") {
-    if (elapsed < 1) {
-      ctx.fillStyle = "#070a12"; ctx.fillRect(0, 0, innerWidth, innerHeight);
-      ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("面向观众...", innerWidth / 2, innerHeight / 2);
-    } else if (elapsed < 2) {
+  if (elapsed < 1) {
+    drawAudience(); // 🌟 改为调用画观众席
+    ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("面向观众...", innerWidth / 2, innerHeight / 2);
+  } else if (elapsed < 2) {
       drawScene();
       ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, innerWidth, innerHeight);
       ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
@@ -187,13 +255,14 @@ p.style.opacity = 0.2 + (progress * 0.8);
 // 配合滤色，让它从暗灰变成亮白
 p.style.filter = `brightness(${0.3 + progress * 0.7})`;
 
-      if (d < 0 && !e.done) { 
-  e.done = true; 
-  p.remove(); // 加上这行，时间到了没划中，立刻消失！
-  feedback("MISS", true); 
-  state.misses++; 
-  state.combo = 0; 
-}
+            if (d < 0 && !e.done) { 
+        e.done = true; 
+        p.remove(); 
+        feedback("MISS", true); 
+        state.misses++; 
+        state.combo = 0; 
+      }
+    }); // 必须要有这一行！
 
     if (elapsed > 55) { state.playing = false; show("result"); return; }
     drawScene();
