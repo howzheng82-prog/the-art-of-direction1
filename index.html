@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <title>The Art of Direction</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="rotate">请将设备旋转至横屏</div>
@@ -12,12 +12,10 @@
   <div id="app">
     <!-- 主菜单 -->
     <section id="menu" class="screen">
-      <div class="stage-preview" id="menuStage"></div>
       <div class="titlebox">
         <h1>The Art of Direction</h1>
         <p>Conduct the music. Shape the performance.</p>
         <button id="startBtn">▶ 开始游戏</button>
-        <button id="creditsBtn" class="subbtn">作品与音频说明</button>
       </div>
     </section>
 
@@ -25,7 +23,6 @@
     <section id="songs" class="screen hidden">
       <div class="panel">
         <h2>选择曲目</h2>
-        <p class="muted">曲目由易到难排列。</p>
         <div id="songList"></div>
         <button id="backMenu" class="subbtn">返回</button>
       </div>
@@ -34,22 +31,17 @@
     <!-- 游戏主画面 -->
     <section id="game" class="screen hidden">
       <canvas id="scene"></canvas>
-      
       <div id="hud">
         <div><b id="songName">Canon in D</b><span id="clock">0:00</span></div>
         <div class="stats">Score <b id="score">0</b>　Combo <b id="combo">0</b>　Acc <b id="accuracy">100%</b></div>
         <button id="pauseBtn">Ⅱ</button>
       </div>
-
       <div id="feedback"></div>
       <div id="promptLayer"></div>
-      
-      <!-- 第一人称悬浮手与指挥棒 -->
       <div id="hands">
         <div id="leftHand">✋</div>
         <div id="rightHand">✋<span id="baton">╱</span></div>
       </div>
-
       <div id="pauseOverlay" class="overlay hidden">
         <div class="card">
           <h2>暂停</h2>
@@ -63,7 +55,7 @@
     <!-- 结算画面 -->
     <section id="result" class="screen hidden">
       <div class="panel result">
-        <h2 id="resultTitle">演出结束</h2>
+        <h2>演出结束</h2>
         <div id="reaction" class="reaction">🌸🌸🌸</div>
         <div id="resultStats"></div>
         <button id="againBtn">再演一次</button>
@@ -72,6 +64,6 @@
     </section>
   </div>
 
-  <script src="js/game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
