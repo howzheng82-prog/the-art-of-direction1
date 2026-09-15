@@ -2,13 +2,13 @@ const $ = s => document.querySelector(s);
 
 // 曲目数据
 const songs = [
-  { mark: "🟢", name: "Canon in D", composer: "Johann Pachelbel", bpm: 84 },
-  { mark: "🟢", name: "Ode to Joy", composer: "Ludwig van Beethoven", bpm: 92 },
-  { mark: "🟡", name: "Eine kleine Nachtmusik", composer: "Wolfgang Amadeus Mozart", bpm: 108 },
-  { mark: "🟡", name: "Für Elise", composer: "Ludwig van Beethoven", bpm: 96 },
-  { mark: "🟠", name: "Hungarian Dance No. 5", composer: "Johannes Brahms", bpm: 126 },
-  { mark: "🔴", name: "William Tell Overture", composer: "Gioachino Rossini", bpm: 144 },
-  { mark: "🔴", name: "1812 Overture", composer: "Pyotr Ilyich Tchaikovsky", bpm: 132 }
+  { mark: "★", name: "Canon in D", composer: "Johann Pachelbel", bpm: 84, stars: 1, color: "#80cfa0" },
+  { mark: "★★", name: "Ode to Joy", composer: "Ludwig van Beethoven", bpm: 92, stars: 2, color: "#f0d060" },
+  { mark: "★★", name: "Eine kleine Nachtmusik", composer: "Wolfgang Amadeus Mozart", bpm: 108, stars: 2, color: "#f0d060" },
+  { mark: "★★★", name: "Für Elise", composer: "Ludwig van Beethoven", bpm: 96, stars: 3, color: "#f0a050" },
+  { mark: "★★★★", name: "Hungarian Dance No. 5", composer: "Johannes Brahms", bpm: 126, stars: 4, color: "#f07070" },
+  { mark: "★★★★★", name: "William Tell Overture", composer: "Gioachino Rossini", bpm: 144, stars: 5, color: "#f05050" },
+  { mark: "★★★★★", name: "1812 Overture", composer: "Pyotr Ilyich Tchaikovsky", bpm: 132, stars: 5, color: "#f05050" }
 ];
 
 let state = { song: 0, playing: false, paused: false, phase: "intro", events: [], eventIndex: 0, start: 0, score: 0, combo: 0, maxCombo: 0, hits: 0, misses: 0, perfect: 0, good: 0, total: 0 };
