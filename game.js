@@ -176,13 +176,14 @@ function loop(now) {
     document.querySelectorAll(".prompt").forEach(p => {
       let e = state.events[+p.dataset.id];
       let d = e.t - elapsed + 1.2; // 1.2秒内从 0 变成 1.2
-      let progress = Math.max(0, Math.min(1, 1 - d / 1.2)); // 进度从 0 变到 1
+      let progress = Math.max(0, Math.min(1, 1 - d / 1.2)); 
+p.style.top = (2 + progress * 78) + "%";
+p.style.transform = `translate(-50%, -50%) scale(${0.1 + progress * 1.6})`;
 
-      // 位置：从上方 5% 落到下方 75%
-      p.style.top = (5 + progress * 70) + "%";
-      // 缩放：从小到大，模拟从远到近
-      p.style.transform = `translate(-50%, -50%) scale(${0.5 + progress * 0.8})`;
-      p.style.opacity = d < 0 ? "0" : ".95";
+// 核心修改：越上越暗（0.2），慢慢拉近变亮（1.0）
+p.style.opacity = 0.2 + (progress * 0.8);
+// 配合滤色，让它从暗灰变成亮白
+p.style.filter = `brightness(${0.3 + progress * 0.7})`;
 
       if (d < 0 && !e.done) { e.done = true; feedback("MISS", true); state.misses++; state.combo = 0; }
     });
