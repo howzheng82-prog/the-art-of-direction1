@@ -203,16 +203,21 @@ addEventListener("pointerup", e => {
   let dx = e.clientX - pointerStart.x, dy = e.clientY - pointerStart.y;
   if (Math.abs(dx) + Math.abs(dy) > 30) {
     let dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "←" : "→") : (dy < 0 ? "↑" : "↓");
-    for (let ev of state.events) {
-      if (!ev.done && ev.type === "beat") {
-        ev.done = true;
-        addScore(dir === ev.dir ? "Perfect" : "Good");
-        let member = band[ev.bandId];
-        if (member) member.noteTimer = 1.0;
-        if (ev.el) ev.el.remove(); 
-        break; 
-      }
-    }
+    // 🌟 只找屏幕上已经出现的那个箭头判定，绝不抢答！
+let activeEv = null;
+for (let ev of state.events) {
+  if (!ev.done && ev.type === "beat" && ev.el && ev.el.parentNode) {
+    activeEv = ev;
+    break; 
+  }
+}
+if (activeEv) {
+  activeEv.done = true;
+  addScore(dir === activeEv.dir ? "Perfect" : "Good");
+  let member = band[activeEv.bandId];
+  if (member) member.noteTimer = 1.0;
+  if (activeEv.el) activeEv.el.remove(); 
+}
   }
   pointerStart = null;
 });
@@ -247,7 +252,7 @@ function loop(now) {
       let progress = Math.max(0, Math.min(1, 1 - d / 1.2)); 
 p.style.top = (2 + progress * 70) + "%";
 // 改成从 0.1 倍大小开始，变到 0.9 倍大小（从小变大，整体更小更精致）
-p.style.transform = `translate(-50%, -50%) scale(${0.1 + progress * 0.8})`;
+p.style.transform = `translate(-50%, -50%) scale(${0.05 + progress * 0.5})`;
 
 // 核心修改：越上越暗（0.2），慢慢拉近变亮（1.0）
 p.style.opacity = 0.2 + (progress * 0.8);
