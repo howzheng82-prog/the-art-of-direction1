@@ -139,12 +139,12 @@ function spawnEvent(e) {
   let p = document.createElement("div"); p.className = "prompt";
   p.dataset.id = state.events.indexOf(e); p.textContent = e.dir;
 
-  // 根据箭头方向分配轨道：左(20%)、中(50%)、右(80%)
-  let trackX = 50;
-  if (e.dir === "←") trackX = 20;
-  if (e.dir === "→") trackX = 80;
-  p.style.left = trackX + "%";
-  p.style.top = "5%"; // 初始位置在屏幕上方
+  // 集中在屏幕中间的窄区域，给 Cue 和 Dynamics 留空间
+let trackX = 50;
+if (e.dir === "←") trackX = 35;
+if (e.dir === "→") trackX = 65;
+p.style.left = trackX + "%";
+p.style.top = "2%";
 
   $("#promptLayer").appendChild(p); e.el = p;
 }
@@ -177,16 +177,23 @@ function loop(now) {
       let e = state.events[+p.dataset.id];
       let d = e.t - elapsed + 1.2; // 1.2秒内从 0 变成 1.2
       let progress = Math.max(0, Math.min(1, 1 - d / 1.2)); 
-p.style.top = (2 + progress * 78) + "%";
-p.style.transform = `translate(-50%, -50%) scale(${0.1 + progress * 1.6})`;
+// 下落范围从 2% 到 72%（集中在中间，不顶到最下面）
+p.style.top = (2 + progress * 70) + "%";
+// 尺寸调整一下，让它在中央区域看起来更舒服
+p.style.transform = `translate(-50%, -50%) scale(${0.3 + progress * 0.7})`;
 
 // 核心修改：越上越暗（0.2），慢慢拉近变亮（1.0）
 p.style.opacity = 0.2 + (progress * 0.8);
 // 配合滤色，让它从暗灰变成亮白
 p.style.filter = `brightness(${0.3 + progress * 0.7})`;
 
-      if (d < 0 && !e.done) { e.done = true; feedback("MISS", true); state.misses++; state.combo = 0; }
-    });
+      if (d < 0 && !e.done) { 
+  e.done = true; 
+  p.remove(); // 加上这行，时间到了没划中，立刻消失！
+  feedback("MISS", true); 
+  state.misses++; 
+  state.combo = 0; 
+}
 
     if (elapsed > 55) { state.playing = false; show("result"); return; }
     drawScene();
