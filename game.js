@@ -1,6 +1,6 @@
 const $ = s => document.querySelector(s);
 
-// 曲目列表（暂时不加载真实音频，避免白屏）
+// 曲目列表（暂时不加载真实音频，确保游戏能跑）
 const songs = [
   { mark: "🟢", name: "Canon in D", composer: "Johann Pachelbel", bpm: 84 },
   { mark: "🟢", name: "Ode to Joy", composer: "Ludwig van Beethoven", bpm: 92 },
@@ -29,8 +29,8 @@ function resize() {
 }
 addEventListener("resize", resize);
 
-// 绘制第一人称管乐团
-function drawScene() {
+// 绘制第一人称管乐团（这里包含了坐姿和起立两种状态）
+function drawScene(phase = "waiting") {
   let w = innerWidth, h = innerHeight;
   ctx.clearRect(0, 0, w, h);
 
@@ -39,7 +39,7 @@ function drawScene() {
   g.addColorStop(0, "#283650"); g.addColorStop(1, "#070a12");
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
 
-  // 乐团布局（长笛靠小号，打击乐在后）
+  // 管乐团布局
   let band = [
     ["🎶", 0.20, 0.55], ["🎺", 0.35, 0.55], ["🎵", 0.50, 0.55], ["🎺", 0.65, 0.55],
     ["📯", 0.25, 0.70], ["🎺", 0.45, 0.70], ["🎺", 0.65, 0.70], ["🥁", 0.50, 0.85]
@@ -47,16 +47,67 @@ function drawScene() {
 
   band.forEach(([ins, x, y]) => {
     let px = w * x, py = h * y;
+    
+    // 如果是等待/鞠躬阶段，乐手是坐着的，身体画得矮一点
+    let bodyHeight = (phase === "waiting") ? 30 : 50;
+    let instrumentY = (phase === "waiting") ? py + 15 : py + 5;
+
     // 身体
     ctx.fillStyle = "#1a2238";
-    ctx.beginPath(); ctx.roundRect(px - 20, py - 10, 40, 50, 10); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(px - 20, py - 10, 40, bodyHeight, 10); ctx.fill();
+    
     // 头部
     ctx.fillStyle = "#d5a58b";
     ctx.beginPath(); ctx.arc(px, py - 20, 14, 0, Math.PI * 2); ctx.fill();
-    // 乐器 / 音符
-    ctx.font = "24px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText(state.phase === "perform" ? "🎵" : ins, px, py + 10);
+    
+    // 乐器（起立/演奏时才发光，或者举起）
+    ctx.font = (phase === "waiting") ? "18px sans-serif" : "26px sans-serif";
+    ctx.textAlign = "center";
+    if (phase === "perform") {
+      ctx.fillStyle = "#ffd700"; // 演奏时金色
+    } else {
+      ctx.fillStyle = "#ffffff";
+    }
+    ctx.fillText(phase === "perform" ? "🎵" : ins, px, instrumentY);
   });
+}
+
+// 开场动画的时间轴（用真实时间模拟）
+function updateIntroAnimation(elapsed) {
+  // 0秒 ~ 1秒：面向观众（我们直接画一个简单的观众席过渡）
+  if (elapsed < 1) {
+    ctx.fillStyle = "#05070e";
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = "#ffd700";
+    ctx.font = "40px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("🎻 面向观众...", innerWidth / 2, innerHeight / 2);
+  }
+  // 1秒 ~ 2秒：转向乐团（鞠躬过渡）
+  else if (elapsed < 2) {
+    drawScene("waiting");
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = "#ffd700";
+    ctx.font = "40px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("🎻 鞠躬...", innerWidth / 2, innerHeight / 2);
+  }
+  // 2秒 ~ 3秒：举起指挥棒，乐手起立
+  else if (elapsed < 3) {
+    drawScene("ready");
+    // 给双手一个向上抬起的动画
+    let handY = 3 + (1 - (3 - elapsed)) * 5; 
+    $("#leftHand").style.bottom = handY + "%";
+    $("#rightHand").style.bottom = handY + "%";
+  }
+  // 3秒后：开始游戏
+  else {
+    state.phase = "perform";
+    $("#leftHand").style.bottom = "3%"; // 手回到原位
+    $("#rightHand").style.bottom = "3%";
+    drawScene("perform");
+  }
 }
 
 function feedback(t, bad = false) {
@@ -85,92 +136,14 @@ function buildEvents() {
 function startSong(i) {
   state.song = i;
   state.score = state.combo = state.maxCombo = state.hits = state.misses = state.perfect = state.good = state.total = 0;
-  state.eventIndex = 0; state.phase = "intro"; state.playing = true; state.paused = false;
-  show("game"); $("#songName").textContent = songs[i].name;
+  state.eventIndex = 0; 
+  state.phase = "intro"; 
+  state.playing = true; 
+  state.paused = false;
+  
+  show("game"); 
+  $("#songName").textContent = songs[i].name;
   resize();
+  
   state.start = performance.now();
-  state.events = buildEvents();
-  requestAnimationFrame(loop);
-}
-
-function spawnEvent(e) {
-  if (e.spawned) return; e.spawned = true;
-  let p = document.createElement("div"); p.className = "prompt";
-  p.dataset.id = state.events.indexOf(e); p.textContent = e.type === "beat" ? e.dir : "●";
-  $("#promptLayer").appendChild(p); e.el = p;
-}
-
-// 手势滑动判定（一次滑动只判定一次）
-let pointerStart = null;
-addEventListener("pointerdown", e => { if (!state.playing || state.paused) return; pointerStart = { x: e.clientX, y: e.clientY }; });
-addEventListener("pointerup", e => {
-  if (!pointerStart || !state.playing || state.paused) return;
-  let dx = e.clientX - pointerStart.x, dy = e.clientY - pointerStart.y;
-  if (Math.abs(dx) + Math.abs(dy) > 30) {
-    let dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "←" : "→") : (dy < 0 ? "↑" : "↓");
-    for (let ev of state.events) {
-      if (!ev.done && ev.type === "beat") {
-        ev.done = true;
-        addScore(dir === ev.dir ? "Perfect" : "Good");
-        break; // 关键：一次手势只判定一次，不能刷分！
-      }
-    }
-  }
-  pointerStart = null;
-});
-
-function loop(now) {
-  if (!state.playing) return;
-  if (!state.paused) {
-    let elapsed = (now - state.start) / 1000; // 用真实时间模拟音频时间
-    if (state.phase === "intro" && elapsed > 2) {
-      state.phase = "perform"; drawScene();
-    }
-    if (state.phase === "perform") {
-      while (state.eventIndex < state.events.length && state.events[state.eventIndex].t < elapsed + 1.2) {
-        spawnEvent(state.events[state.eventIndex]); state.eventIndex++;
-      }
-      document.querySelectorAll(".prompt").forEach(p => {
-        let e = state.events[+p.dataset.id];
-        let d = e.t - elapsed + 1.2;
-        p.style.transform = `translate(-50%,-50%) scale(${Math.max(0.25, 1 - d / 1.2)})`;
-        p.style.opacity = d < 0 ? "0" : ".95";
-        if (d < 0 && !e.done) { e.done = true; addScore("Miss"); }
-      });
-      if (elapsed > 55) finish();
-    }
-  }
-  $("#score").textContent = state.score;
-  $("#combo").textContent = state.combo;
-  $("#accuracy").textContent = (state.total ? Math.round((state.hits / state.total) * 100) : 100) + "%";
-  requestAnimationFrame(loop);
-}
-
-function finish() {
-  state.playing = false; show("result");
-  let acc = state.total ? Math.round((state.hits / state.total) * 100) : 100;
-  $("#reaction").textContent = acc >= 80 ? "🌸🌸🌸🌸🌸" : "🍎🍅🍊🍌";
-  $("#resultStats").innerHTML = `<div>Score: ${state.score}</div><div>Accuracy: ${acc}%</div><div>Max Combo: ${state.maxCombo}</div><div>Perfect / Great: ${state.perfect} / ${state.good}</div>`;
-}
-
-// 按钮绑定
-$("#startBtn").onclick = () => { show("songs"); makeSongs(); };
-$("#backMenu").onclick = () => show("menu");
-$("#pauseBtn").onclick = () => { state.paused = true; $("#pauseOverlay").classList.remove("hidden"); };
-$("#continueBtn").onclick = () => { state.paused = false; $("#pauseOverlay").classList.add("hidden"); };
-$("#restartBtn").onclick = () => startSong(state.song);
-$("#songMenuBtn").onclick = () => { state.playing = false; show("songs"); $("#pauseOverlay").classList.add("hidden"); };
-$("#againBtn").onclick = () => startSong(state.song);
-$("#resultMenuBtn").onclick = () => show("songs");
-
-function makeSongs() {
-  let list = $("#songList"); list.innerHTML = "";
-  songs.forEach((s, i) => {
-    let b = document.createElement("button"); b.className = "song";
-    b.innerHTML = `<span class="mark">${s.mark}</span><span><b>${s.name}</b><small>${s.composer}</small></span>`;
-    b.onclick = () => startSong(i); list.appendChild(b);
-  });
-}
-
-makeSongs();
-resize();
+  state.events = b
