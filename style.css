@@ -62,4 +62,10 @@ button:active { transform: scale(0.98); }
 .card button { display: block; margin: 12px 0; width: 100%; }
 .reaction { font-size: clamp(28px, 6vw, 70px); margin: 25px; }
 .resultgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin: 20px 0; }
-.resultgrid div { padding: 10px; background: #1
+.resultgrid div { padding: 10px; background: #121a2e; border-radius: 10px; }
+
+/* 竖屏提醒 */
+@media (orientation: portrait) {
+  #rotate { display: flex; position: fixed; inset: 0; z-index: 999; background: #090c15; align-items: center; justify-content: center; text-align: center; font-size: 22px; }
+  #app { display: none; }
+}
