@@ -134,4 +134,106 @@ function drawScene() {
     ctx.fillStyle = "#d5a58b";
     ctx.beginPath(); ctx.arc(screenX, screenY - 30 * scale, 14 * scale, 0, Math.PI * 2); ctx.fill();
 
-    ctx.font = `${Math.max(12, 24 * sca
+    ctx.font = `${Math.max(12, 24 * scale)}px sans-serif`; 
+      ctx.textAlign = "center";
+      ctx.fillStyle = state.phase === "perform" ? "#ffd700" : "#ffffff";
+      ctx.fillText(state.phase === "perform" ? "🎵" : member.inst, screenX, screenY + 5 * scale);
+    });
+  }
+
+/* =========================================================
+   3. 游戏循环与判定
+   ========================================================= */
+  function startSong(i) {
+    state.playing = true; 
+    state.phase = "intro"; 
+    state.eventIndex = 0;
+    state.score = 0; 
+    state.combo = 0; 
+    state.hits = 0; 
+    state.misses = 0;
+    
+    show("game"); 
+    $("#songName").textContent = songs[i].name;
+    resize();
+    
+    state.start = performance.now();
+    state.events = [];
+    let beat = 60 / songs[i].bpm;
+    for (let t = 3; t < 50; t += beat) {
+      state.events.push({ t, type: "beat", dir: ["←", "↑", "↓", "→"][state.events.length % 4], done: false });
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function loop(now) {
+    if (!state.playing) return;
+    let elapsed = (now - state.start) / 1000;
+
+    // 开场动画
+    if (state.phase === "intro") {
+      if (elapsed < 1) {
+        ctx.fillStyle = "#070a12"; ctx.fillRect(0, 0, innerWidth, innerHeight);
+        ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("面向观众...", innerWidth / 2, innerHeight / 2);
+      } else if (elapsed < 2) {
+        drawScene();
+        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, innerWidth, innerHeight);
+        ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText("鞠躬...", innerWidth / 2, innerHeight / 2);
+      } else {
+        state.phase = "perform"; 
+        drawScene();
+      }
+    } 
+    // 正式演奏
+    else if (state.phase === "perform") {
+      while (state.eventIndex < state.events.length && state.events[state.eventIndex].t < elapsed + 1.2) {
+        let e = state.events[state.eventIndex];
+        let p = document.createElement("div"); 
+        p.className = "prompt";
+        p.dataset.id = state.eventIndex; 
+        p.textContent = e.dir;
+        $("#promptLayer").appendChild(p); 
+        e.el = p; 
+        state.eventIndex++;
+      }
+      
+      document.querySelectorAll(".prompt").forEach(p => {
+        let e = state.events[+p.dataset.id];
+        let d = e.t - elapsed + 1.2;
+        p.style.transform = `translate(-50%,-50%) scale(${Math.max(0.25, 1 - d / 1.2)})`;
+        p.style.opacity = d < 0 ? "0" : ".95";
+        
+        if (d < 0 && !e.done) { 
+          e.done = true; 
+          feedback("MISS", true); 
+          state.misses++; 
+          state.combo = 0; 
+        }
+      });
+      
+      if (elapsed > 55) { 
+        state.playing = false; 
+        show("result"); 
+        return; 
+      }
+      drawScene();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function feedback(t, bad = false) {
+    let f = $("#feedback"); 
+    f.textContent = t;
+    f.style.color = bad ? "#ff6d78" : "#d9f5ff"; 
+    f.style.opacity = 1;
+    clearTimeout(feedback.timer);
+    feedback.timer = setTimeout(() => f.style.opacity = 0, 450);
+  }
+
+/* =========================================================
+   4. 启动游戏
+   ========================================================= */
+  // 启动加载流程
+  runLoadingScreen();
