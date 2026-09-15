@@ -203,21 +203,21 @@ addEventListener("pointerup", e => {
   let dx = e.clientX - pointerStart.x, dy = e.clientY - pointerStart.y;
   if (Math.abs(dx) + Math.abs(dy) > 30) {
     let dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "←" : "→") : (dy < 0 ? "↑" : "↓");
-    // 🌟 只找屏幕上已经出现的那个箭头判定，绝不抢答！
-let activeEv = null;
-for (let ev of state.events) {
-  if (!ev.done && ev.type === "beat" && ev.el && ev.el.parentNode) {
-    activeEv = ev;
-    break; 
-  }
-}
-if (activeEv) {
-  activeEv.done = true;
-  addScore(dir === activeEv.dir ? "Perfect" : "Good");
-  let member = band[activeEv.bandId];
-  if (member) member.noteTimer = 1.0;
-  if (activeEv.el) activeEv.el.remove(); 
-}
+    
+    // 🌟 直接找屏幕上的第一个箭头！
+    let prompts = document.querySelectorAll(".prompt");
+    if (prompts.length > 0) {
+      let firstPrompt = prompts[0];
+      let evIndex = +firstPrompt.dataset.id;
+      let activeEv = state.events[evIndex];
+      if (activeEv && !activeEv.done) {
+        activeEv.done = true;
+        addScore(dir === activeEv.dir ? "Perfect" : "Good");
+        let member = band[activeEv.bandId];
+        if (member) member.noteTimer = 1.0;
+        firstPrompt.remove(); // 🌟 直接删掉屏幕上的DOM元素，绝对能消失！
+      }
+    }
   }
   pointerStart = null;
 });
