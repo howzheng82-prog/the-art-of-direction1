@@ -25,7 +25,7 @@
     <section id="songs" class="screen hidden">
       <div class="panel">
         <h2>选择曲目</h2>
-        <p class="muted">曲目由易到难排列；没有独立难度模式。</p>
+        <p class="muted">曲目由易到难排列。</p>
         <div id="songList"></div>
         <button id="backMenu" class="subbtn">返回</button>
       </div>
@@ -34,45 +34,26 @@
     <!-- 游戏主画面 -->
     <section id="game" class="screen hidden">
       <canvas id="scene"></canvas>
-
+      
       <div id="hud">
-        <div>
-          <b id="songName">Canon in D</b>
-          <span id="clock">0:00</span>
-        </div>
-        <div class="stats">
-          Score <b id="score">0</b>　
-          Combo <b id="combo">0</b>　
-          Acc <b id="accuracy">100%</b>
-        </div>
+        <div><b id="songName">Canon in D</b><span id="clock">0:00</span></div>
+        <div class="stats">Score <b id="score">0</b>　Combo <b id="combo">0</b>　Acc <b id="accuracy">100%</b></div>
         <button id="pauseBtn">Ⅱ</button>
       </div>
 
       <div id="feedback"></div>
       <div id="promptLayer"></div>
-      <div id="gestureLayer"></div>
-
+      
+      <!-- 第一人称悬浮手与指挥棒 -->
       <div id="hands">
         <div id="leftHand">✋</div>
         <div id="rightHand">✋<span id="baton">╱</span></div>
       </div>
 
-      <!-- 教学弹窗 -->
-      <div id="tutorial" class="overlay hidden">
-        <div class="card">
-          <h2 id="tutorialTitle">指挥教学</h2>
-          <p id="tutorialText"></p>
-          <button id="tutorialNext">明白了</button>
-        </div>
-      </div>
-
-      <!-- 暂停弹窗 -->
       <div id="pauseOverlay" class="overlay hidden">
         <div class="card">
           <h2>暂停</h2>
           <button id="continueBtn">继续</button>
-          <label>音乐音量 <input id="musicVol" type="range" min="0" max="1" step=".05" value=".8"></label>
-          <label>音效音量 <input id="sfxVol" type="range" min="0" max="1" step=".05" value=".8"></label>
           <button id="restartBtn">重新开始</button>
           <button id="songMenuBtn">返回曲目表</button>
         </div>
@@ -87,17 +68,6 @@
         <div id="resultStats"></div>
         <button id="againBtn">再演一次</button>
         <button id="resultMenuBtn" class="subbtn">返回曲目表</button>
-      </div>
-    </section>
-
-    <!-- 作品与音频说明 -->
-    <section id="credits" class="screen hidden">
-      <div class="panel">
-        <h2>作品与音频说明</h2>
-        <p>本项目为静态网页原型。曲目使用公版作品；具体录音的授权状态必须以对应来源页面为准。</p>
-        <p>正式发布前，请把确认过的音频文件放入 <code>audio/</code> 文件夹，并在 <code>js/game.js</code> 的曲目表中填写本地路径。</p>
-        <p>当前版本使用内置节拍演示，不代表最终逐小节精准谱面。</p>
-        <button id="creditsBack" class="subbtn">返回</button>
       </div>
     </section>
   </div>
