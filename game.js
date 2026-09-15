@@ -66,7 +66,8 @@ function makeSongs() {
   songs.forEach((s, i) => {
     let b = document.createElement("button"); 
     b.className = "song";
-    b.innerHTML = `<span class="mark">${s.mark}</span><span><b>${s.name}</b><small>${s.composer}</small></span>`;
+    // 注意这里：变成了 class="stars" 并且带上了颜色
+    b.innerHTML = `<span class="stars" style="color:${s.color}">${s.mark}</span><span><b>${s.name}</b><small>${s.composer}</small></span>`;
     b.onclick = () => goToPrep(i); 
     list.appendChild(b);
   });
