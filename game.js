@@ -11,7 +11,7 @@ const songs = [
   { mark: "★★★★★", name: "1812 Overture", composer: "Pyotr Ilyich Tchaikovsky", bpm: 132, stars: 5, color: "#f05050" }
 ];
 
-let state = { song: 0, playing: false, paused: false, phase: "intro", events: [], eventIndex: 0, start: 0, score: 0, combo: 0, maxCombo: 0, hits: 0, misses: 0, perfect: 0, good: 0, total: 0 };
+let state = { song: 0, playing: false, paused: false, phase: "intro", events: [], eventIndex: 0, start: 0, pauseStart: 0, score: 0, combo: 0, maxCombo: 0, hits: 0, misses: 0, perfect: 0, good: 0, total: 0 };
 
 function show(id) {
   document.querySelectorAll(".screen").forEach(x => x.classList.add("hidden"));
@@ -206,19 +206,15 @@ addEventListener("pointerup", e => {
     let elapsed = (performance.now() - state.start) / 1000;
     let prompts = document.querySelectorAll(".prompt");
     let activeEv = null, activePrompt = null;
-
-    // 只寻找"判定线附近"的箭头
     for (let p of prompts) {
       let ev = state.events[+p.dataset.id];
       if (ev && !ev.done) {
         let d = ev.t - elapsed + 1.2;
-        // 时间窗口：0.5秒内到达才算有效
         if (d < 0.5 && d > -0.2) {
           activeEv = ev; activePrompt = p; break;
         }
       }
     }
-
     if (activeEv) {
       activeEv.done = true;
       addScore(dir === activeEv.dir ? "Perfect" : "Good");
@@ -259,19 +255,18 @@ function loop(now) {
   if (!e) { p.remove(); return; }
   let d = e.t - elapsed + 1.2;
   let progress = Math.max(0, Math.min(1, 1 - d / 1.2));
-
   p.style.top = (2 + progress * 70) + "%";
   p.style.transform = `translate(-50%, -50%) scale(${0.05 + progress * 0.5})`;
   p.style.opacity = 0.2 + (progress * 0.8);
   p.style.filter = `brightness(${0.3 + progress * 0.7})`;
-
-  // 时间到了（d < 0），无论有没有判定过，一律删除！
   if (d < 0) {
     if (!e.done) {
       e.done = true;
       feedback("MISS", true);
       state.misses++;
+      state.total++;
       state.combo = 0;
+      updateHud();
     }
     p.remove();
   }
