@@ -144,7 +144,7 @@ function drawScene() {
 
     ctx.font = `${Math.max(12, 24 * scale)}px sans-serif`; ctx.textAlign = "center";
     ctx.fillStyle = state.phase === "perform" ? "#ffd700" : "#ffffff";
-    ctx.fillText(state.phase === "perform" ? "🎵" : member.inst, screenX, screenY + 5 * scale);
+    ctx.fillText(member.inst, screenX, screenY + 5 * scale);
 
     // 🌟 新增：绘制乐器发声的小音符
     if (member.noteTimer > 0) {
@@ -231,48 +231,46 @@ function loop(now) {
   let elapsed = (now - state.start) / 1000;
 
   if (state.phase === "intro") {
-  if (elapsed < 1) {
-    drawAudience(); // 🌟 改为调用画观众席
-    ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
-    ctx.fillText("面向观众...", innerWidth / 2, innerHeight / 2);
-  } else if (elapsed < 2) {
+    if (elapsed < 2.0) {
+      drawAudience();
+      ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
+      ctx.fillText("鞠躬...", innerWidth / 2, innerHeight / 2);
+    } else if (elapsed < 4.0) {
       drawScene();
       ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, innerWidth, innerHeight);
       ctx.fillStyle = "#ffd700"; ctx.font = "30px sans-serif"; ctx.textAlign = "center";
-      ctx.fillText("鞠躬...", innerWidth / 2, innerHeight / 2);
+      ctx.fillText("乐团准备...", innerWidth / 2, innerHeight / 2);
     } else {
       state.phase = "perform"; drawScene();
     }
   } else if (state.phase === "perform") {
-    // 生成提前 1.2 秒的箭头
     while (state.eventIndex < state.events.length && state.events[state.eventIndex].t < elapsed + 1.2) {
       spawnEvent(state.events[state.eventIndex]); state.eventIndex++;
     }
 
-    // 更新箭头位置（从上往下落）
     document.querySelectorAll(".prompt").forEach(p => {
-  let e = state.events[+p.dataset.id];
-  if (!e) { p.remove(); return; }
-  let d = e.t - elapsed + 1.2;
-  let progress = Math.max(0, Math.min(1, 1 - d / 1.2));
-  p.style.top = (2 + progress * 70) + "%";
-  p.style.transform = `translate(-50%, -50%) scale(${0.05 + progress * 0.5})`;
-  p.style.opacity = 0.2 + (progress * 0.8);
-  p.style.filter = `brightness(${0.3 + progress * 0.7})`;
-  if (d < 0) {
-    if (!e.done) {
-      e.done = true;
-      feedback("MISS", true);
-      state.misses++;
-      state.total++;
-      state.combo = 0;
-      updateHud();
-    }
-    p.remove();
-  }
-});
+      let e = state.events[+p.dataset.id];
+      if (!e) { p.remove(); return; }
+      let d = e.t - elapsed + 1.2;
+      let progress = Math.max(0, Math.min(1, 1 - d / 1.2));
+      p.style.top = (2 + progress * 70) + "%";
+      p.style.transform = `translate(-50%, -50%) scale(${0.05 + progress * 0.5})`;
+      p.style.opacity = 0.2 + (progress * 0.8);
+      p.style.filter = `brightness(${0.3 + progress * 0.7})`;
+      if (d < 0) {
+        if (!e.done) {
+          e.done = true;
+          feedback("MISS", true);
+          state.misses++;
+          state.total++;
+          state.combo = 0;
+          updateHud();
+        }
+        p.remove();
+      }
+    });
 
-    if (elapsed > 55) { state.playing = false; show("result"); return; }
+    if (elapsed > 55) { state.playing = false; showResult(); return; }
     drawScene();
   }
   requestAnimationFrame(loop);
